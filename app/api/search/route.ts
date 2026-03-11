@@ -25,24 +25,28 @@ export async function GET(request: Request) {
     const $ = cheerio.load(html);
     
     const songs: any[] = [];
-    const seenNumbers = new Set(); // [중복 제거 핵심] 이미 저장한 곡 번호를 기억하는 바구니
+    const seenNumbers = new Set(); // 중복 제거용 세트
 
-    // 제공해주신 .grid-container.list 구조를 기반으로 파싱 시작
+    // 리스트 구조 파싱 시작
     $('.grid-container.list').each((_, el) => {
       // 1. 곡 번호 추출
       const number = $(el).find('.num2').text().trim();
       
-      // 2. [중복 체크] 번호가 없거나 이미 바구니(Set)에 있는 번호라면 이번 곡은 건너뜁니다.
+      // 2. 중복 체크
       if (!number || seenNumbers.has(number)) return;
-      seenNumbers.add(number); // 새로운 번호라면 바구니에 추가
+      seenNumbers.add(number);
 
-      // 3. 곡 제목 추출 (아이콘을 제외한 순수 텍스트 p 태그)
+      // 3. 곡 제목 추출
       const title = $(el).find('.title3 .ico-flex > p').text().trim();
       
       // 4. 가수 추출
       const artist = $(el).find('.title4.singer span').text().trim();
 
-      // 5. 아이콘 정보 추출 (MV, MR, 전용곡 등)
+      // 5. [추가] 유튜브 링크 추출
+      // .grid-item.link.youtube 클래스 내부의 a 태그 href 속성을 가져옵니다.
+      const youtubeUrl = $(el).find('.grid-item.link.youtube a').attr('href');
+
+      // 6. 아이콘 정보 추출 (MV, MR, 전용곡 등)
       const icons: { type: string; text: string }[] = [];
       $(el).find('.title3 .ico-flex ul li p.ico').each((_, icoEl) => {
         const fullClass = $(icoEl).attr('class') || '';
@@ -54,13 +58,14 @@ export async function GET(request: Request) {
         }
       });
 
-      // 6. 결과 배열에 추가
+      // 7. 결과 배열에 추가 (youtubeUrl 포함)
       if (number && title) {
         songs.push({
           number,
           title,
           artist,
-          icons
+          icons,
+          youtubeUrl: youtubeUrl || null // 링크가 없을 경우를 대비해 null 처리
         });
       }
     });
