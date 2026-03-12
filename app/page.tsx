@@ -24,6 +24,9 @@ export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'search' | 'favorite'>('search');
 
+  // --- 토스트 알림을 위한 상태 ---
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // --- 메모 기능을 위한 상태 ---
   const [isMemoModalOpen, setIsMemoModalOpen] = useState(false);
   const [activeSong, setActiveSong] = useState<Song | null>(null);
@@ -46,6 +49,16 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem('singnow-favorites', JSON.stringify(favorites));
   }, [favorites]);
+
+  // 토스트 자동 사라짐 로직 (1초)
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => {
+        setToastMessage(null);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -122,6 +135,33 @@ export default function Home() {
     reader.readAsText(file);
   };
 
+  // --- 제목 복사 및 토스트 표시 함수 ---
+  const handleCopyTitle = (title: string) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(title).then(() => {
+        setToastMessage("곡 제목이 복사되었습니다!");
+      }).catch(() => {
+        fallbackCopyTextSimple(title);
+      });
+    } else {
+      fallbackCopyTextSimple(title);
+    }
+  };
+
+  const fallbackCopyTextSimple = (text: string) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setToastMessage("곡 제목이 복사되었습니다!");
+    } catch (err) {
+      console.error("복사 실패");
+    }
+    document.body.removeChild(textArea);
+  };
+
   const handleLyricsSearch = (artist: string, title: string) => {
     const prompt = `가수 "${artist}", 노래 제목 "${title}"의 가사를 찾아줘. 
 형식은 반드시 아래와 같이 소절마다 출력해줘:
@@ -187,6 +227,15 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-900 selection:bg-blue-100 selection:text-blue-700 font-sans overflow-x-hidden relative">
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-gradient-to-b from-blue-50/50 to-transparent -z-10" />
+
+      {/* --- 토스트 알림 UI --- */}
+      {toastMessage && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[110] animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-slate-800 text-white px-6 py-3 rounded-2xl shadow-2xl text-sm font-bold flex items-center gap-2 border border-slate-700">
+            <span>✅</span> {toastMessage}
+          </div>
+        </div>
+      )}
 
       {/* --- 메모 팝업 모달 --- */}
       {isMemoModalOpen && (
@@ -278,11 +327,16 @@ export default function Home() {
               </button>
             </li>
             <li className="pt-6 border-t border-slate-100">
-              <p className="text-xs font-black text-slate-300 uppercase tracking-widest mb-4">Account</p>
-              <button className="flex items-center gap-4 text-lg font-bold text-slate-400 hover:text-slate-600 transition-all w-full text-left group outline-none">
-                <span className="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-50 text-slate-400 group-hover:bg-slate-200 transition-all text-xl shrink-0"><span className="relative -top-[0.5px]">👤</span></span>
-                <span className="leading-none mt-0.5 text-lg">사용자 설정</span>
+              <p className="text-xs font-black text-slate-300 uppercase tracking-widest mb-4">Data Management</p>
+              <button onClick={exportToJson} className="flex items-center gap-4 text-lg font-bold text-slate-400 hover:text-slate-600 transition-all w-full text-left group outline-none">
+                <span className="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-50 text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 text-xl shrink-0"><span className="relative -top-[0.5px]">📤</span></span>
+                <span className="leading-none mt-0.5 text-lg">Export (.json)</span>
               </button>
+              <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-4 text-lg font-bold text-slate-400 hover:text-slate-600 transition-all w-full text-left group outline-none">
+                <span className="w-11 h-11 flex items-center justify-center rounded-2xl bg-slate-50 text-slate-400 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 text-xl shrink-0"><span className="relative -top-[0.5px]">📥</span></span>
+                <span className="leading-none mt-0.5 text-lg">Import (.json)</span>
+              </button>
+              <input type="file" ref={fileInputRef} onChange={importFromJson} accept=".json" className="hidden" />
             </li>
           </ul>
         </nav>
@@ -338,11 +392,16 @@ export default function Home() {
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[10px] md:text-[12px] font-black text-indigo-500 bg-indigo-50 px-2.5 py-0.5 rounded-full font-mono tracking-wider shrink-0">{song.number}</span>
                     </div>
-                    <h3 className="text-[17px] md:text-2xl font-extrabold text-slate-800 leading-[1.3] mb-1 break-words line-clamp-2 group-hover:text-blue-600 transition-colors">{song.title}</h3>
+                    {/* --- 곡 제목 클릭 시 복사 기능 추가 --- */}
+                    <h3 
+                      onClick={() => handleCopyTitle(song.title)}
+                      className="text-[17px] md:text-2xl font-extrabold text-slate-800 leading-[1.3] mb-1 break-words line-clamp-2 group-hover:text-blue-600 transition-colors cursor-pointer active:opacity-50"
+                    >
+                      {song.title}
+                    </h3>
                     <p className="text-sm md:text-lg font-bold text-slate-400 truncate tracking-tight">{song.artist}</p>
                   </div>
                   <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto">
-                    {/* --- 가사 검색 버튼 (돋보기) - 왼쪽으로 이동 --- */}
                     <button 
                       onClick={() => handleLyricsSearch(song.artist, song.title)}
                       className="flex items-center justify-center w-11 h-11 md:w-14 md:h-14 rounded-full bg-emerald-50 text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all duration-300 shadow-sm active:scale-90"
@@ -350,8 +409,6 @@ export default function Home() {
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     </button>
-
-                    {/* --- 메모 버튼 (말풍선) - 오른쪽으로 이동 --- */}
                     <button 
                       onClick={() => openMemoModal(song)}
                       className={`flex items-center justify-center w-11 h-11 md:w-14 md:h-14 rounded-full transition-all duration-300 shadow-sm active:scale-90 ${hasMemo ? 'bg-amber-600 text-white shadow-amber-200' : 'bg-amber-50 text-amber-500 hover:bg-amber-600 hover:text-white'}`}
