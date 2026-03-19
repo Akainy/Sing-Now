@@ -67,7 +67,7 @@ export default function Home() {
     }
     const debounceTimer = setTimeout(() => {
       performSearch(query);
-    }, 100);
+    }, 450);
     return () => clearTimeout(debounceTimer);
   }, [query]);
 
