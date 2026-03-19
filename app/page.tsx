@@ -67,7 +67,7 @@ export default function Home() {
     }
     const debounceTimer = setTimeout(() => {
       performSearch(query);
-    }, 600);
+    }, 100);
     return () => clearTimeout(debounceTimer);
   }, [query]);
 
@@ -392,14 +392,15 @@ export default function Home() {
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[10px] md:text-[12px] font-black text-indigo-500 bg-indigo-50 px-2.5 py-0.5 rounded-full font-mono tracking-wider shrink-0">{song.number}</span>
                     </div>
-                    {/* --- 곡 제목 클릭 시 복사 기능 추가 --- */}
                     <h3 
                       onClick={() => handleCopyTitle(song.title)}
                       className="text-[17px] md:text-2xl font-extrabold text-slate-800 leading-[1.3] mb-1 break-words line-clamp-2 group-hover:text-blue-600 transition-colors cursor-pointer active:opacity-50"
                     >
                       {song.title}
                     </h3>
-                    <p className="text-sm md:text-lg font-bold text-slate-400 truncate tracking-tight">{song.artist}</p>
+                    <p className="text-sm md:text-lg font-bold text-slate-400 tracking-tight break-words whitespace-normal leading-tight">
+                      {song.artist}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-auto">
                     <button 
@@ -418,7 +419,12 @@ export default function Home() {
                     </button>
                     
                     {song.youtubeUrl && (
-                      <a href={song.youtubeUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-11 h-11 md:w-14 md:h-14 rounded-full bg-red-100/50 text-[#FF0000] hover:bg-[#FF0000] hover:text-white transition-all duration-300 shadow-[0_2px_10px_rgba(255,0,0,0.1)] active:scale-90">
+                      <a 
+                        href={`${song.youtubeUrl}&app=desktop`} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex items-center justify-center w-11 h-11 md:w-14 md:h-14 rounded-full bg-red-100/50 text-[#FF0000] hover:bg-[#FF0000] hover:text-white transition-all duration-300 shadow-[0_2px_10px_rgba(255,0,0,0.1)] active:scale-90"
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 4-8 4z"/></svg>
                       </a>
                     )}
